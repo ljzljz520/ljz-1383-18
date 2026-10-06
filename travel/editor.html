@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>旅行叙事编辑器｜目的、路线、照片与许可</title>
+  <link rel="stylesheet" href="/css/travel.css" />
+</head>
+<body>
+  <div id="toast-container" aria-live="polite"></div>
+  <div id="app">
+    <aside class="sidebar glass-panel">
+      <div>
+        <p class="eyebrow">Travel Narrative CMS</p>
+        <h1>旅行影集叙事编辑器</h1>
+        <p class="muted">稳定引用连接章节、照片、地图节点与故事段落；离线操作以操作日志合并。</p>
+      </div>
+
+      <section class="status-card">
+        <div class="status-line"><span class="dot" id="net-dot"></span><strong id="net-label"></strong></div>
+        <div class="status-grid">
+          <span>发布代次</span><b id="gen-label">-</b>
+          <span>待上传操作</span><b id="outbox-count">0</b>
+          <span>冲突</span><b id="conflict-count">0</b>
+        </div>
+        <div class="button-row">
+          <button id="toggle-online" class="btn small"></button>
+          <button id="sync" class="btn primary small">同步</button>
+          <button id="purge" class="btn small">清理受控缓存</button>
+        </div>
+      </section>
+
+      <section class="panel-block">
+        <h2>验收演练</h2>
+        <button id="demo-withdraw-offline" class="btn full">① 离线写已撤信息并重连</button>
+        <button id="demo-two-tabs" class="btn full">② 模拟两个标签页同时重排</button>
+        <button id="demo-media-interrupt" class="btn full">③ 媒体处理中断后继续</button>
+        <button id="demo-old-link" class="btn full">④ 打开已缓存旧分享链接</button>
+        <button id="reset-demo" class="btn subtle full">重置演示数据</button>
+      </section>
+
+      <section class="panel-block">
+        <h2>发布与缓存</h2>
+        <button id="publish" class="btn primary full">发布新代次</button>
+        <button id="open-share" class="btn full">打开当前访客分享页</button>
+        <div id="share-list" class="share-list"></div>
+      </section>
+
+      <section class="panel-block">
+        <h2>副本撤回范围</h2>
+        <div id="copies"></div>
+      </section>
+    </aside>
+
+    <main class="workspace">
+      <section class="glass-panel trip-card">
+        <label>旅行目的 / 标题
+          <input id="trip-title" />
+        </label>
+        <label>这趟旅行要回答的问题
+          <textarea id="trip-purpose" rows="2"></textarea>
+        </label>
+        <div class="button-row">
+          <button id="add-chapter" class="btn">新增章节</button>
+          <button id="add-person" class="btn">新增同行人</button>
+          <button id="add-node" class="btn">新增地图节点</button>
+        </div>
+      </section>
+
+      <section id="conflicts" class="conflicts hidden"></section>
+
+      <section class="people-strip">
+        <h2>同行人与许可</h2>
+        <div id="people" class="people-grid"></div>
+      </section>
+
+      <section id="chapters" class="chapters"></section>
+    </main>
+  </div>
+
+  <dialog id="person-dialog">
+    <form method="dialog" class="share-form">
+      <h2>新增同行人</h2>
+      <label>姓名<input id="person-name" placeholder="例如：阿澈" /></label>
+      <label>联系信息<input id="person-contact" placeholder="邮箱或电话" /></label>
+      <menu>
+        <button value="cancel" class="btn">取消</button>
+        <button id="person-save" value="default" class="btn primary">保存并授予许可</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="node-dialog">
+    <form method="dialog" class="share-form">
+      <h2>新增地图节点</h2>
+      <label>节点名称<input id="node-name" /></label>
+      <label>地址<input id="node-address" /></label>
+      <div class="button-row">
+        <label style="flex:1">纬度<input id="node-lat" value="24.5555" /></label>
+        <label style="flex:1">经度<input id="node-lng" value="118.1111" /></label>
+      </div>
+      <label>所属章节<select id="node-chapter"></select></label>
+      <menu>
+        <button value="cancel" class="btn">取消</button>
+        <button id="node-save" value="default" class="btn primary">保存节点</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="share-dialog">
+    <form method="dialog" class="share-form">
+      <h2>生成分享版本</h2>
+      <label>版本名称<input id="share-label" placeholder="例如：给家人的国庆路线" /></label>
+      <fieldset>
+        <legend>共享方式比较</legend>
+        <label><input type="radio" name="mode" value="fullChapter" /> 全章共享：继承所选章节结构，以后新增段落按字段范围可见</label>
+        <label><input type="radio" name="mode" value="snapshot" checked /> 按分享对象生成白名单快照：冻结照片、地图、段落集合</label>
+      </fieldset>
+      <fieldset>
+        <legend>字段白名单（独立可见范围）</legend>
+        <label><input type="checkbox" id="allow-name" checked /> 姓名</label>
+        <label><input type="checkbox" id="allow-contact" /> 联系信息</label>
+        <label><input type="checkbox" id="allow-location" /> 精确位置；关闭时只发布约 10 公里范围</label>
+      </fieldset>
+      <div id="share-chapters" class="share-picker"></div>
+      <div id="share-units" class="share-picker"></div>
+      <menu>
+        <button value="cancel" class="btn">取消</button>
+        <button id="create-share" value="default" class="btn primary">生成快照</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script type="module" src="/js/travel/app.js"></script>
+</body>
+</html>

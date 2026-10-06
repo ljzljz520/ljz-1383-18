@@ -1,0 +1,18 @@
+{
+  "name": "travel-narrative-editor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node api-server.js",
+    "test:kernel": "node tests/kernel.test.mjs",
+    "test:api": "node tests/api.test.mjs",
+    "test:e2e": "node tests/e2e.test.mjs",
+    "test:share": "node tests/share.test.mjs",
+    "test": "node tests/kernel.test.mjs && node tests/api.test.mjs && node tests/e2e.test.mjs && node tests/share.test.mjs"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^29.1.1"
+  }
+}

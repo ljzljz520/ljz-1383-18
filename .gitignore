@@ -23,3 +23,7 @@ __pycache__/
 *.log
 .env
 .env.*
+
+# Travel editor runtime data
+travel-data.json
+media-store/
