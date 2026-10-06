@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>旅行影集 · 叙事编辑器</title>
+<style>
+  :root{--bd:#e2e2e2;--accent:#2f6feb;--warn:#b54708;--ok:#067647}
+  *{box-sizing:border-box} body{font-family:system-ui;margin:0;color:#1a1a1a}
+  header{display:flex;gap:1rem;align-items:center;padding:.6rem 1rem;border-bottom:1px solid var(--bd);position:sticky;top:0;background:#fff;z-index:5}
+  header h1{font-size:1.05rem;margin:0}
+  .pill{font-size:.75rem;padding:.15rem .5rem;border-radius:999px;border:1px solid var(--bd)}
+  .pill.on{background:#e7f6ec;color:var(--ok);border-color:#abefc6}
+  .pill.off{background:#fef0c7;color:var(--warn);border-color:#fedf89}
+  button{font:inherit;padding:.35rem .7rem;border:1px solid var(--bd);background:#fff;border-radius:.4rem;cursor:pointer}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.danger{color:#b42318}
+  main{display:grid;grid-template-columns:260px 1fr 320px;gap:1rem;padding:1rem;align-items:start}
+  .col h3{margin:.2rem 0 .6rem;font-size:.9rem;color:#555;text-transform:uppercase;letter-spacing:.04em}
+  .card{border:1px solid var(--bd);border-radius:.5rem;padding:.6rem;margin-bottom:.5rem;background:#fff}
+  #chapterList .ch{cursor:grab} #chapterList .ch.dragging{opacity:.4}
+  #chapterList .ch.active{outline:2px solid var(--accent)}
+  .ch .t{font-weight:600} .ch .meta{font-size:.72rem;color:#888}
+  textarea,input[type=text]{width:100%;font:inherit;padding:.4rem;border:1px solid var(--bd);border-radius:.4rem}
+  textarea{min-height:180px;font-family:ui-monospace,monospace}
+  .row{display:flex;gap:.4rem;flex-wrap:wrap;margin:.4rem 0}
+  .tag{display:inline-block;background:#eef4ff;color:#175cd3;border-radius:.3rem;padding:0 .3rem;font-size:.8rem}
+  .tag.media{background:#ecfdf3;color:#067647}.tag.node{background:#fffaeb;color:#b54708}
+  .item{display:flex;justify-content:space-between;align-items:center;gap:.4rem;padding:.3rem 0;border-bottom:1px dashed #eee;font-size:.9rem}
+  .item:last-child{border-bottom:0}
+  #report{position:fixed;bottom:0;left:0;right:0;max-height:38vh;overflow:auto;background:#101828;color:#e4e7ec;padding:.8rem 1rem;font-size:.85rem;display:none}
+  #report.show{display:block} #report .conflict{color:#fdb022} #report .purged{color:#f97066} #report .okc{color:#32d583}
+  .muted{color:#888;font-size:.8rem} code{background:#f2f4f7;padding:.05rem .3rem;border-radius:.3rem}
+  .consent{font-size:.75rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>旅行影集 · 叙事编辑器</h1>
+  <span id="netPill" class="pill on">在线</span>
+  <span class="pill">head v<span id="headV">0</span></span>
+  <span class="pill">待同步 <span id="qN">0</span></span>
+  <button id="toggleNet">切换离线</button>
+  <button id="syncBtn" class="primary">同步</button>
+  <button id="reloadBtn">重新加载</button>
+  <span class="muted" id="albumId"></span>
+</header>
+
+<main>
+  <div class="col">
+    <h3>章节（拖拽排序）</h3>
+    <div id="chapterList"></div>
+    <button id="newChapter">+ 新建章节</button>
+  </div>
+
+  <div class="col">
+    <h3>章节编辑</h3>
+    <div id="editor" class="card" style="display:none">
+      <input type="text" id="chTitle" placeholder="章节标题">
+      <div class="row">
+        <button data-ins="media">插入照片引用</button>
+        <button data-ins="node">插入地点引用</button>
+        <button data-ins="companion">插入同行人引用</button>
+        <span class="muted">引用以 <code>[[类型:ID]]</code> 形式嵌入，拖动章节不会错配</span>
+      </div>
+      <textarea id="chBody" placeholder="正文…用 [[media:ID]] 引用照片"></textarea>
+      <div class="row"><button id="saveChapter" class="primary">保存章节</button>
+      <button id="delChapter" class="danger">删除章节</button></div>
+      <div class="muted">预览：</div>
+      <div id="preview" class="card"></div>
+    </div>
+    <div id="noSel" class="muted">← 选择一个章节进行编辑</div>
+  </div>
+
+  <div class="col">
+    <h3>照片</h3>
+    <div class="row"><input type="text" id="mediaName" placeholder="文件名.jpg" style="flex:1"><button id="addMedia">上传</button></div>
+    <div id="mediaList"></div>
+    <h3>路线节点</h3>
+    <div class="row"><input type="text" id="nodeLabel" placeholder="地点" style="flex:1">
+      <input type="text" id="nodeLat" placeholder="纬度" style="width:5rem">
+      <input type="text" id="nodeLng" placeholder="经度" style="width:5rem"></div>
+    <button id="addNode">+ 添加节点</button>
+    <div id="nodeList"></div>
+    <h3>同行人 / 许可</h3>
+    <div class="row"><input type="text" id="compName" placeholder="姓名" style="flex:1"><input type="text" id="compContact" placeholder="联系方式" style="flex:1"></div>
+    <button id="addComp">+ 添加同行人</button>
+    <div id="compList"></div>
+    <h3>分享</h3>
+    <div class="row">
+      <label class="consent"><input type="checkbox" id="allowName" checked> 姓名</label>
+      <label class="consent"><input type="checkbox" id="allowContact"> 联系方式</label>
+      <label class="consent"><input type="checkbox" id="allowLoc"> 精确位置</label>
+    </div>
+    <div class="row">
+      <button id="shareWhitelist">生成白名单快照</button>
+      <button id="shareFull">全章共享</button>
+    </div>
+    <div id="shareList"></div>
+  </div>
+</main>
+
+<div id="report"></div>
+<script src="/app.js"></script>
+</body>
+</html>
